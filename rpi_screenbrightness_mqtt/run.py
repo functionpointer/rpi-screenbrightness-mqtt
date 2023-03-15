@@ -5,6 +5,7 @@
 import configparser,sys, time
 import paho.mqtt.client as mqtt
 from rpi_backlight import Backlight
+import json
 
 class rpiSBmqtt:
 
@@ -18,11 +19,16 @@ class rpiSBmqtt:
         self._mqttuser = self._config.get('mqtt', 'user')
         self._mqttpassword = self._config.get('mqtt', 'password')
         self._mqttconnectedflag = False
+        
         self._mqtt_state_topic = self._config.get('mqtt', 'state_topic')
         self._mqtt_command_topic = self._config.get('mqtt', 'command_topic')
         self._mqtt_brightness_state_topic = self._config.get('mqtt', 'brightness_state_topic')
         self._mqtt_brightness_command_topic = self._config.get('mqtt', 'brightness_command_topic')
+        self._mqtt_availability_topic = self._config.get('mqtt', 'availability_topic', fallback=None)
         self._mqtt_clientid = self._config.get('mqtt', 'clientid')
+        self._mqtt_autodiscover = self._config.getboolean('mqtt', 'autodiscover', fallback=False)
+        self._name = self._config.get('mqtt', 'name', fallback="rpi_screenbacklight")
+        
         self._console_output = self._config.getboolean('misc', 'debug')
 
         # initalise backlight object
@@ -44,6 +50,28 @@ class rpiSBmqtt:
             self._mqttconnectedflag = True
             client.subscribe(self._mqtt_brightness_command_topic)
             client.subscribe(self._mqtt_command_topic)
+
+            if self._mqtt_autodiscover:
+              autoconfig = {
+                        "name": self._name,
+                        "state_topic": self._mqtt_state_topic,
+                        "command_topic": self._mqtt_command_topic,
+                        "brightness_state_topic": self._mqtt_brightness_state_topic,
+                        "brightness_command_topic": self._mqtt_brightness_command_topic,
+                        "brightness_scale": 100,
+                        "unique_id": self._name,
+                        "device": {
+                            "identifiers": self._name,
+                            "name": self._name,
+                        },
+                    }
+              if self._mqtt_availability_topic:
+                autoconfig["availability_topic"] = self._mqtt_availability_topic
+              client.publish(
+                f"homeassistant/light/{self._name}/light/config",
+                json.dumps(autoconfig),
+                retain=True,
+            )
         else:
             self._mqttconnectedflag = False
             self._print("Could not connect. Return code: " + str(rc))
@@ -69,10 +97,14 @@ class rpiSBmqtt:
     def sendStatus(self, client):
         payload_brightness = str(self._backlight.brightness)
         payload_power = "ON" if self._backlight.power else "OFF"
+
         self._print("Publishing " + payload_brightness + " to topic: " + self._mqtt_brightness_state_topic + " ...")
         client.publish(self._mqtt_brightness_state_topic, payload_brightness, 0, False)
         self._print("Publishing " + payload_power + " to topic: " + self._mqtt_state_topic + " ...")
         client.publish(self._mqtt_state_topic, payload_power, 0, False)
+
+        if self._mqtt_availability_topic:
+          client.publish(self._mqtt_availability_topic, "online")
 
     def run(self):
         client = mqtt.Client(self._mqtt_clientid)
@@ -80,6 +112,8 @@ class rpiSBmqtt:
         client.on_message = self.on_message
         client.on_disconnect = self.on_disconnect
         client.username_pw_set(self._mqttuser, self._mqttpassword)
+        if self._mqtt_availability_topic:
+          client.will_set(self._mqtt_availability_topic, payload="offline")
         self._print("Connecting to broker "+self._mqttbroker)
         client.loop_start()
         try:
