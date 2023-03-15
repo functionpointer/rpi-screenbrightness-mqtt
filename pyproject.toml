@@ -1,0 +1,28 @@
+[project]
+name = "rpi_screenbrightness_mqtt"
+version = "0.5.1"
+authors = [
+    {name = "Tobias Perschon", email = "tobias@perschon.at"},
+]
+description = "A simple service that conntects to an mqtt broker so you can control the backlight of an rpi (touch)screen via mqtt (and eg. homeassistant)"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["one", "two"]
+license = {text = "GNU GPLv3"}
+dependencies = [
+    "rpi-backlight",
+    "paho-mqtt",
+]
+
+[project.urls]
+homepage = "https://github.com/tofuSCHNITZEL/rpi-screenbrightness-mqtt"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["rpi_screenbrightness_mqtt"]
+
+[project.scripts]
+rpi_screenbrightness_mqtt = "rpi_screenbrightness_mqtt.run:main"

@@ -105,7 +105,7 @@ class rpiSBmqtt:
 
 
 # Main entry point.
-if __name__ == '__main__':
+def main():
     print('Starting rpi (touch)screen brightness control via mqtt.')
     config_path = '/etc/rpi_screenbrightness_mqtt.conf'
     # Override config path if provided as parameter.
@@ -113,3 +113,6 @@ if __name__ == '__main__':
         config_path = sys.argv[1]
     rpiControl = rpiSBmqtt(config_path)
     rpiControl.run()
+
+if __name__ == '__main__':
+  main()
