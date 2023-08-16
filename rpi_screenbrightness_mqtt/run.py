@@ -53,7 +53,7 @@ class rpiSBmqtt:
 
             if self._mqtt_autodiscover:
               autoconfig = {
-                        "name": self._name,
+                        "name": None,
                         "state_topic": self._mqtt_state_topic,
                         "command_topic": self._mqtt_command_topic,
                         "brightness_state_topic": self._mqtt_brightness_state_topic,
